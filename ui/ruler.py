@@ -61,13 +61,13 @@ class RulerWidget(wx.Panel):
             index = round((i - self.offset * self.pixels_on_step) / self.pixels_on_step)
             if not self.invert:
                 while i < w:
-                    gc.DrawText(str(index), i + 2, 6)
+                    gc.DrawText(str(index), i + 2, 0)
                     gc.StrokeLine(i, 0, i, h)
                     i += self.pixels_on_step * step
                     index += step
             else:
                 while i < w:
-                    gc.DrawText(str(index), (w - i) + 2, 6)
+                    gc.DrawText(str(index), (w - i) + 2, 0)
                     gc.StrokeLine((w - i), h, (w - i), 0)
                     i += self.pixels_on_step * step
                     index -= step
@@ -82,7 +82,7 @@ class RulerWidget(wx.Panel):
                 )
             if not self.invert:
                 while i < w:
-                    gc.StrokeLine(i, 0, i, h / 2)
+                    gc.StrokeLine(i, h / 2, i, h)
                     i += step * self.pixels_on_step / 10
             else:
                 while i < w:
@@ -108,9 +108,9 @@ class RulerWidget(wx.Panel):
             while i < h:
                 gc.PushState()
                 if not self.invert:
-                    gc.Translate(8, i)
+                    gc.Translate(0, i)
                 else:
-                    gc.Translate(8, h - i)
+                    gc.Translate(0, h - i)
                 gc.Rotate(-math.pi / 2)
                 gc.DrawText(str(index), 0, 0)
                 gc.PopState()

@@ -40,6 +40,7 @@ class CanvasWidget(wx.Panel):
 
     def on_mouse_wheel(self, event: wx.MouseEvent):
       self.canvas.Zoom(1.0 + (event.GetWheelRotation() * 0.0001))
+      self.update_rulers()
 
     def update_rulers(self):
         size = self.canvas.GetSize()
@@ -79,3 +80,5 @@ class CanvasWidget(wx.Panel):
             self.canvas.MoveImage((self.old_x - pos.x, self.old_y - pos.y), "Pixel")
             self.old_x = pos.x
             self.old_y = pos.y
+
+            self.update_rulers()
