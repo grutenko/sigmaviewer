@@ -1,13 +1,55 @@
 import wx
 
+from ui.icon import get_icon
+from ui.actions import ID_PIN_PLOTS
+
 class MainMenu(wx.MenuBar):
   def __init__(self):
     super().__init__()
     m = wx.Menu()
+    item = m.Append(wx.ID_OPEN, "&Открыть\tCtrl+O", "Открыть файл")
+    item.SetBitmap(get_icon("folder-open"))
+    item = m.Append(wx.ID_SAVE, "&Сохранить\tCtrl+S", "Сохранить файл")
+    item.SetBitmap(get_icon("save"))
+    item.Enable(False)
+    item = m.Append(wx.ID_SAVEAS, "Сохранить &как...\tCtrl+Shift+S", "Сохранить файл под другим именем")
+    item.SetBitmap(get_icon("save-as"))
+    item.Enable(False)
+    item = m.Append(wx.ID_PRINT, "&Печать\tCtrl+P", "Печать документа")
+    item.SetBitmap(get_icon("print"))
+    item.Enable(False)
+    item = m.Append(wx.ID_EXIT, "Выход\tCtrl+Q", "Закрыть приложение")
+    item.SetBitmap(get_icon("exit"))
     self.Append(m, "Файл")
     m = wx.Menu()
+    item = m.Append(wx.ID_COPY, "&Копировать\tCtrl+C", "Копировать выделенное")
+    item.SetBitmap(get_icon("copy"))
+    item.Enable(False)
+    item = m.Append(wx.ID_CUT, "Вырезать\tCtrl+X", "Вырезать выделенное")
+    item.SetBitmap(get_icon("cut"))
+    item.Enable(False)
+    item = m.Append(wx.ID_PASTE, "&Вставить\tCtrl+V", "Вставить из буфера обмена")
+    item.SetBitmap(get_icon("paste"))
+    item.Enable(False)
+    item = m.Append(wx.ID_UNDO, "&Отменить\tCtrl+Z", "Отменить последнее действие")
+    item.SetBitmap(get_icon("undo"))
+    item.Enable(False)
+    item = m.Append(wx.ID_REDO, "&Вернуть\tCtrl+Y", "Повторить последнее действие")
+    item.SetBitmap(get_icon("redo"))
+    item.Enable(False)
     self.Append(m, "Правка")
     m = wx.Menu()
+    item: wx.MenuItem = m.AppendCheckItem(ID_PIN_PLOTS, "Открепить чертежи")
+    item.SetBitmaps(get_icon("pin"), get_icon("unpin"))
+    m.Bind(wx.EVT_MENU, self.on_pin_plots, item)
     self.Append(m, "Вид")
     m = wx.Menu()
     self.Append(m, "Помощь")
+
+  def on_pin_plots(self, event):
+    item = self.FindItemById(event.GetId())
+    if item.IsChecked():
+      item.SetItemLabel("Закрепить чертежи")
+    else:
+      item.SetItemLabel("Открепить чертежи")
+    event.Skip()

@@ -1,6 +1,7 @@
 import wx
 import wx.aui
-import wx.lib.agw.flatmenu
+
+from ui.plot import EVT_PLOT_SELECTION_CHANGED, EVT_PLOT_MOVE, EVT_PLOT_SCALE
 
 class Notebook(wx.Panel):
     def __init__(self, parent):
@@ -11,5 +12,17 @@ class Notebook(wx.Panel):
         self.SetSizer(sz)
         self.Layout()
 
-    def add_page(self, page, title):
-        self.notebook.AddPage(page, title)
+    def add_plot(self, plot):
+        self.notebook.AddPage(plot, plot.get_name(), select=True)
+        plot.Bind(EVT_PLOT_SELECTION_CHANGED, self.on_selection_changed)
+        plot.Bind(EVT_PLOT_MOVE, self.on_move)
+        plot.Bind(EVT_PLOT_SCALE, self.on_scale)
+
+    def on_selection_changed(self, event):
+        wx.PostEvent(self, event)  # Forward the event to the parent frame
+
+    def on_move(self, event):
+        wx.PostEvent(self, event)
+
+    def on_scale(self, event):
+        wx.PostEvent(self, event)
