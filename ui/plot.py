@@ -49,6 +49,8 @@ class PlotWidget(wx.Panel):
             pass
 
     def load(self, path):
+       # Запускаем пропатченый поток с возможностью вызвать асинхронное исключение для прерывания процесса
+       # Например при закрытии вкладки во время загрузки https://stackoverflow.com/a/325528
        self.load_task = util.thread_with_exc.ThreadWithExc(target=self.do_load, args=(path, ), daemon=True)
        self.load_task.start()
 
