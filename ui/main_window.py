@@ -120,7 +120,7 @@ class MainWindow(wx.Frame):
         if self.notebook.get_current() == event.plot:
             self.properties_manager.update(event.plot)
             self.mgr.GetPane("properties").Caption(
-                "Свойства"
+                "Свойства (%s: %s)" % (event.plot.get_name(), event.plot.get_selection().dxftype())
                 if event.plot.get_selection() is not None
                 else "Свойства - не выбран объект"
             )
@@ -188,11 +188,13 @@ class MainWindow(wx.Frame):
         if plot is not None:
             self.objects_manager.update(plot)
             self.properties_manager.update(plot)
+            self.mgr.GetPane("objects").Caption("Объекты (%s)" % plot.get_name())
         else:
             self.objects_manager.clear()
             self.properties_manager.clear()
+            self.mgr.GetPane("objects").Caption("Объекты")
         self.mgr.GetPane("properties").Caption(
-            "Свойства"
+            "Свойства (%s: %s)" % (plot.get_name(), plot.get_selection().dxftype())
             if plot is not None and plot.get_selection() is not None
             else "Свойства - не выбран объект"
         )

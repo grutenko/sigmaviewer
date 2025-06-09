@@ -29,9 +29,21 @@ class ObjectsManager(wx.Panel):
         self.Layout()
 
     def show_items(self, plot):
+        layers = {}
         for entity in plot.dxf.modelspace():
-            item = self.tree.AppendItem(self.tree.RootItem, entity.dxftype(), data=entity)
-            self.tree.CheckItem(item)
+            layer = entity.dxf.get("layer", "0")
+            if layer not in layers:
+                layers[layer] = []
+            layers[layer].append(entity)
+
+        root = self.tree.AppendItem(self.tree.RootItem, "DXF")
+
+        for layer, entities in layers.items():
+            layerItem = self.tree.AppendItem(root, layer)
+            for entity in entities:
+                entityItem = self.tree.AppendItem(layerItem, entity.dxftype(), data=entity)
+                self.tree.CheckItem(entityItem)
+            self.tree.CheckItem(layerItem)
 
     def clear(self):
         self.tree.DeleteAllItems()
