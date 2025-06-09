@@ -1,7 +1,7 @@
 import wx
 import wx.aui
 
-from .plot import EVT_PLOT_STATE_CHANGED
+from .plot import EVT_PLOT_STATE_CHANGED, EVT_PLOT_SELECTION_CHANGED, EVT_PLOT_READY_STATE_CHANGED_EVENT
 
 class Notebook(wx.Panel):
     def __init__(self, parent):
@@ -19,10 +19,9 @@ class Notebook(wx.Panel):
 
     def add_plot(self, plot):
         self.notebook.AddPage(plot, plot.get_name(), select=True)
-        plot.Bind(EVT_PLOT_STATE_CHANGED, self.on_state_changed)
-
-    def on_state_changed(self, event):
-        wx.PostEvent(self, event)
+        plot.Bind(EVT_PLOT_STATE_CHANGED, lambda e: wx.PostEvent(self, e))
+        plot.Bind(EVT_PLOT_SELECTION_CHANGED, lambda e: wx.PostEvent(self, e))
+        plot.Bind(EVT_PLOT_READY_STATE_CHANGED_EVENT, lambda e: wx.PostEvent(self, e))
 
     def set_loading(self, index, loading):
         if index >= 0 and index < self.notebook.GetPageCount():

@@ -6,8 +6,14 @@ from .notebook import Notebook
 from .objects import ObjectsManager
 from .properties import PropertiesManager
 from .toolbars import FileToolbar, PlotToolbar
-from .plot import PlotWidget, EVT_PLOT_STATE_CHANGED
+from .plot import (
+    PlotWidget,
+    EVT_PLOT_STATE_CHANGED,
+    EVT_PLOT_SELECTION_CHANGED,
+    EVT_PLOT_READY_STATE_CHANGED_EVENT,
+)
 from .actions import ID_PIN_PLOTS
+
 
 class MainWindow(wx.Frame):
     def __init__(self):
@@ -26,49 +32,66 @@ class MainWindow(wx.Frame):
         self.properties_manager = PropertiesManager(self)
         self.file_toolbar = FileToolbar(self)
         self.plot_toolbar = PlotToolbar(self)
-        self.mgr.AddPane(self.file_toolbar, wx.aui.AuiPaneInfo()
-          .Name("file_toolbar")
-          .Caption("Файл")
-          .ToolbarPane()
-          .Top().Row(0)
-          .PinButton(True)
-          .CloseButton(False)
-          .MinSize(wx.Size(200, 22)))
-        self.mgr.AddPane(self.plot_toolbar, wx.aui.AuiPaneInfo()
-          .Name("plot_toolbar")
-          .Caption("Файл")
-          .ToolbarPane()
-          .Top().Row(0)
-          .PinButton(True)
-          .CloseButton(False)
-          .MinSize(wx.Size(200, 22)))
-        self.mgr.AddPane(self.notebook, wx.aui.AuiPaneInfo()
-          .Name("notebook")
-          .Caption("Чертежи")
-          .CenterPane()
-          .PinButton(True)
-          .CloseButton(False)
-          .Dockable(False)
-          .Movable(False)
-          .MinSize(wx.Size(800, 600))
-          .BestSize(wx.Size(800, 600)))
-        self.mgr.AddPane(self.objects_manager, wx.aui.AuiPaneInfo()
-          .Name("objects")
-          .Caption("Объекты")
-          .Right()
-          .PinButton(True)
-          .CloseButton(True)
-          .MinSize(wx.Size(250, 250)))
-        self.mgr.AddPane(self.properties_manager, wx.aui.AuiPaneInfo()
-          .Name("properties")
-          .Caption("Свойства - не выбран объект")
-          .Right()
-          .PinButton(True)
-          .CloseButton(True)
-          .MinSize(wx.Size(250, 250)))
-        
+        self.mgr.AddPane(
+            self.file_toolbar,
+            wx.aui.AuiPaneInfo()
+            .Name("file_toolbar")
+            .Caption("Файл")
+            .ToolbarPane()
+            .Top()
+            .Row(0)
+            .PinButton(True)
+            .CloseButton(False)
+            .MinSize(wx.Size(200, 22)),
+        )
+        self.mgr.AddPane(
+            self.plot_toolbar,
+            wx.aui.AuiPaneInfo()
+            .Name("plot_toolbar")
+            .Caption("Файл")
+            .ToolbarPane()
+            .Top()
+            .Row(0)
+            .PinButton(True)
+            .CloseButton(False)
+            .MinSize(wx.Size(200, 22)),
+        )
+        self.mgr.AddPane(
+            self.notebook,
+            wx.aui.AuiPaneInfo()
+            .Name("notebook")
+            .Caption("Чертежи")
+            .CenterPane()
+            .PinButton(True)
+            .CloseButton(False)
+            .Dockable(False)
+            .Movable(False)
+            .MinSize(wx.Size(800, 600))
+            .BestSize(wx.Size(800, 600)),
+        )
+        self.mgr.AddPane(
+            self.objects_manager,
+            wx.aui.AuiPaneInfo()
+            .Name("objects")
+            .Caption("Объекты")
+            .Right()
+            .PinButton(True)
+            .CloseButton(True)
+            .MinSize(wx.Size(250, 250)),
+        )
+        self.mgr.AddPane(
+            self.properties_manager,
+            wx.aui.AuiPaneInfo()
+            .Name("properties")
+            .Caption("Свойства - не выбран объект")
+            .Right()
+            .PinButton(True)
+            .CloseButton(True)
+            .MinSize(wx.Size(250, 250)),
+        )
+
         self.mgr.GetPane("plot_toolbar").Hide()
-      
+
         self.mgr.Update()
         self.Layout()
         self.Show()
@@ -77,41 +100,75 @@ class MainWindow(wx.Frame):
 
     def bind_all(self):
         self.mgr.Bind(wx.aui.EVT_AUI_PANE_BUTTON, self.on_pane_button)
-        self.notebook.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_activate_plot_changed)
+        self.notebook.Bind(
+            wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_activate_plot_changed
+        )
         self.menu.Bind(wx.EVT_MENU, self.on_pin_plots, id=ID_PIN_PLOTS)
         self.menu.Bind(wx.EVT_MENU, self.on_open, id=wx.ID_OPEN)
         self.file_toolbar.Bind(wx.EVT_TOOL, self.on_open, id=wx.ID_OPEN)
         self.notebook.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CLOSED, self.on_page_closed)
         self.notebook.Bind(EVT_PLOT_STATE_CHANGED, self.on_plot_state_changed)
+        self.notebook.Bind(EVT_PLOT_SELECTION_CHANGED, self.on_plot_selection_changed)
+        self.notebook.Bind(
+            EVT_PLOT_READY_STATE_CHANGED_EVENT, self.on_plot_ready_state_changed
+        )
 
     def on_plot_state_changed(self, event):
-        self.update_panels()
         self.update_controls_state()
 
+    def on_plot_selection_changed(self, event):
+        if self.notebook.get_current() == event.plot:
+            self.properties_manager.update(event.plot)
+            self.mgr.GetPane("properties").Caption(
+                "Свойства"
+                if event.plot.get_selection() is not None
+                else "Свойства - не выбран объект"
+            )
+            self.update_controls_state()
+            self.mgr.Update()
+
+    def on_plot_ready_state_changed(self, event):
+        if self.notebook.get_current() == event.plot:
+            self.objects_manager.update(event.plot)
+            self.update_ready_state()
+            self.update_controls_state()
+
     def on_page_closed(self, event):
-        self.update_panels()
+        if self.notebook.empty():
+            self.objects_manager.clear()
+            self.properties_manager.clear()
         self.update_controls_state()
 
     def on_open(self, event):
-        with wx.FileDialog(self, "Открыть файл", wildcard="*.dxf", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as file_dialog:
+        with wx.FileDialog(
+            self,
+            "Открыть файл",
+            wildcard="*.dxf",
+            style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST,
+        ) as file_dialog:
             if file_dialog.ShowModal() == wx.ID_CANCEL:
                 return
-            
+
             path = file_dialog.GetPath()
             self.open(path)
 
     def open(self, path: str):
         if not path:
-            wx.MessageBox("Не выбран файл для открытия", "Ошибка", wx.OK | wx.ICON_ERROR)
+            wx.MessageBox(
+                "Не выбран файл для открытия", "Ошибка", wx.OK | wx.ICON_ERROR
+            )
             return
         import os.path
+
         plot = PlotWidget(self.notebook, name=os.path.basename(path))
         self.notebook.add_plot(plot)
         plot.load(path)
-        self.update_controls_state()
 
     def on_pane_button(self, event: wx.aui.AuiManagerEvent):
-        if event.GetPane().name == "notebook" and event.GetButton() == wx.aui.AUI_BUTTON_PIN:
+        if (
+            event.GetPane().name == "notebook"
+            and event.GetButton() == wx.aui.AUI_BUTTON_PIN
+        ):
             item = self.menu.FindItemById(ID_PIN_PLOTS)
             item.Check(True)
             item.SetItemLabel("Закрепить чертежи")
@@ -119,30 +176,43 @@ class MainWindow(wx.Frame):
 
     def on_pin_plots(self, event):
         item = self.menu.FindItemById(event.GetId())
-        self.mgr.GetPane("notebook").Float() if item.IsChecked() else self.mgr.GetPane("notebook").Dock()
+        (
+            self.mgr.GetPane("notebook").Float()
+            if item.IsChecked()
+            else self.mgr.GetPane("notebook").Dock()
+        )
         self.mgr.Update()
 
     def on_activate_plot_changed(self, event):
-        self.update_panels()
-        self.update_controls_state()
-        event.Skip()
-
-    def update_panels(self):
-        props_pane = self.mgr.GetPane("properties")
         plot = self.notebook.get_current()
         if plot is not None:
-            if plot.get_selection():
-                self.properties_manager.update(plot)
-                props_pane.Caption("Свойства")
-            else:
-                self.properties_manager.clear()
-                props_pane.Caption("Свойства - объект не выбран")
             self.objects_manager.update(plot)
+            self.properties_manager.update(plot)
         else:
-            self.properties_manager.clear()
             self.objects_manager.clear()
-            props_pane.Caption("Свойства - объект не выбран")
+            self.properties_manager.clear()
+        self.mgr.GetPane("properties").Caption(
+            "Свойства"
+            if plot is not None and plot.get_selection() is not None
+            else "Свойства - не выбран объект"
+        )
+        self.update_ready_state()
+        self.update_controls_state()
         self.mgr.Update()
+        event.Skip()
+
+    def update_ready_state(self):
+        for i in range(self.notebook.notebook.GetPageCount()):
+            plot = self.notebook.notebook.GetPage(i)
+            self.notebook.set_loading(i, not plot.is_ready())
+
+        label = ""
+        if not self.notebook.empty():
+            if self.notebook.is_ready():
+                label = "Готов"
+            else:
+                label = "Загружается"
+        self.statusbar.SetStatusText(label)
 
     def update_controls_state(self):
         can_save = self.notebook.can_save()
@@ -166,17 +236,5 @@ class MainWindow(wx.Frame):
         self.menu.Enable(wx.ID_SAVEAS, not self.notebook.empty())
         self.menu.Enable(wx.ID_UNDO, can_undo)
         self.menu.Enable(wx.ID_REDO, can_redo)
-
-        for i in range(self.notebook.notebook.GetPageCount()):
-            plot = self.notebook.notebook.GetPage(i)
-            self.notebook.set_loading(i, not plot.is_ready())
-
-        label = ""
-        if not self.notebook.empty():
-            if self.notebook.is_ready():
-                label = "Готов"
-            else:
-                label = "Загружается"
-        self.statusbar.SetStatusText(label)
 
         self.mgr.Update()

@@ -5,13 +5,21 @@ class ObjectsManager(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent)
         sz = wx.BoxSizer(wx.VERTICAL)
+        self.current_plot = None
         self.tree = wx.dataview.TreeListCtrl(self, style=wx.dataview.TL_DEFAULT_STYLE | wx.dataview.TL_CHECKBOX)
         self.tree.AppendColumn("Название")
+        self.tree.Bind(wx.dataview.EVT_DATAVIEW_SELECTION_CHANGED, self.on_selection_changed)
         sz.Add(self.tree, 1, wx.EXPAND)
         self.SetSizer(sz)
         self.Layout()
 
+    def on_selection_changed(self, event):
+        if self.current_plot is not None:
+            item = self.tree.GetSelection()
+            self.current_plot.set_selection(self.tree.GetItemData(item) if item.IsOk() else None)
+
     def update(self, plot):
+        self.current_plot = plot
         self.tree.DeleteAllItems()
         self.tree.SetItemText(self.tree.RootItem, plot.get_name())
         if not plot.is_ready():
@@ -22,7 +30,7 @@ class ObjectsManager(wx.Panel):
 
     def show_items(self, plot):
         for entity in plot.dxf.modelspace():
-            item = self.tree.AppendItem(self.tree.RootItem, entity.dxftype())
+            item = self.tree.AppendItem(self.tree.RootItem, entity.dxftype(), data=entity)
             self.tree.CheckItem(item)
 
     def clear(self):

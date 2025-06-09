@@ -4,6 +4,8 @@ import util.thread_with_exc
 from ui.ruler import RulerWidget
 
 PlotStateChangedEvent, EVT_PLOT_STATE_CHANGED = wx.lib.newevent.NewEvent()
+PlotSelectionChangedEvent, EVT_PLOT_SELECTION_CHANGED = wx.lib.newevent.NewEvent()
+PlotReadyStateChangedEvent, EVT_PLOT_READY_STATE_CHANGED_EVENT = wx.lib.newevent.NewEvent()
 
 class PlotLoadCancelException(Exception): ...
 
@@ -32,7 +34,7 @@ class PlotWidget(wx.Panel):
         self.Layout()
 
     def get_selection(self):
-        return None
+        return self.selection
 
     def get_name(self):
         return self.name
@@ -44,7 +46,7 @@ class PlotWidget(wx.Panel):
         try:
             import ezdxf
             self.dxf = ezdxf.readfile(path)
-            wx.PostEvent(self, PlotStateChangedEvent(plot=self))
+            wx.PostEvent(self, PlotReadyStateChangedEvent(plot=self))
         except PlotLoadCancelException:
             pass
 
@@ -53,6 +55,11 @@ class PlotWidget(wx.Panel):
        # Например при закрытии вкладки во время загрузки https://stackoverflow.com/a/325528
        self.load_task = util.thread_with_exc.ThreadWithExc(target=self.do_load, args=(path, ), daemon=True)
        self.load_task.start()
+
+    def set_selection(self, entity):
+        if self.selection != entity:
+            self.selection = entity
+            wx.PostEvent(self, PlotSelectionChangedEvent(plot=self))
 
     def save(self, path):
         pass
@@ -91,5 +98,5 @@ class PlotWidget(wx.Panel):
         pass
 
     def on_close(self):
-        if self.load_task is not None and self.load_task.is_alive():
+        if not self.is_ready():
             self.load_task.raise_exc(PlotLoadCancelException)
