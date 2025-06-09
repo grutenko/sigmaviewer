@@ -1,8 +1,6 @@
 import wx
 import wx.aui
 
-from ui.plot import EVT_PLOT_SELECTION_CHANGED, EVT_PLOT_MOVE, EVT_PLOT_SCALE
-
 class Notebook(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent)
@@ -14,15 +12,63 @@ class Notebook(wx.Panel):
 
     def add_plot(self, plot):
         self.notebook.AddPage(plot, plot.get_name(), select=True)
-        plot.Bind(EVT_PLOT_SELECTION_CHANGED, self.on_selection_changed)
-        plot.Bind(EVT_PLOT_MOVE, self.on_move)
-        plot.Bind(EVT_PLOT_SCALE, self.on_scale)
 
-    def on_selection_changed(self, event):
-        wx.PostEvent(self, event)  # Forward the event to the parent frame
+    def get_current(self):
+        if self.notebook.GetSelection() > -1:
+            return self.notebook.GetPage(self.notebook.GetSelection())
+        return None
 
-    def on_move(self, event):
-        wx.PostEvent(self, event)
+    def save(self, path):
+        page = self.get_current()
+        if page and page.can_save():
+            page.save(path)
 
-    def on_scale(self, event):
-        wx.PostEvent(self, event)
+    def can_save(self):
+        page = self.get_current()
+        return page and page.can_save()
+
+    def can_undo(self):
+        page = self.get_current()
+        return page and page.can_undo()
+
+    def undo(self):
+        page = self.get_current()
+        if page and page.can_undo():
+            page.undo()
+
+    def can_redo(self):
+        page = self.get_current()
+        return page and page.can_redo()
+
+    def redo(self):
+        page = self.get_current()
+        if page and page.can_redo():
+            page.redo()
+
+    def can_copy(self):
+        page = self.get_current()
+        return page and page.can_copy()
+
+    def copy(self):
+        page = self.get_current()
+        if page and page.can_copy():
+            page.copy()
+
+    def can_cut(self):
+        page = self.get_current()
+        return page and page.can_cut()
+
+    def cut(self):
+        page = self.get_current()
+        if page and page.can_cut():
+            page.cut()
+
+    def can_paste(self):
+        page = self.get_current()
+        return page and page.can_paste()
+
+    def paste(self):
+        page = self.get_current()
+        if page and page.can_paste():
+            page.paste()
+

@@ -4,8 +4,8 @@ class PropertiesManager(wx.Panel):
     def __init__(self, parent):
         super().__init__(parent)
 
-    def update_properties(self, plot, selection):
+    def update(self, plot):
         ...
 
-    def clear_properties(self):
+    def clear(self):
         ...

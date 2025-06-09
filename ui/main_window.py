@@ -6,7 +6,7 @@ from .notebook import Notebook
 from .objects import ObjectsManager
 from .properties import PropertiesManager
 from .toolbars import FileToolbar, PlotToolbar
-from .plot import PlotWidget, EVT_PLOT_MOVE, EVT_PLOT_SCALE
+from .plot import PlotWidget, EVT_PLOT_STATE_CHANGED
 from .actions import ID_PIN_PLOTS
 
 class MainWindow(wx.Frame):
@@ -66,6 +66,8 @@ class MainWindow(wx.Frame):
           .PinButton(True)
           .CloseButton(True)
           .MinSize(wx.Size(250, 250)))
+        
+        self.mgr.GetPane("plot_toolbar").Hide()
       
         self.mgr.Update()
         self.Layout()
@@ -76,8 +78,6 @@ class MainWindow(wx.Frame):
     def bind_all(self):
         self.mgr.Bind(wx.aui.EVT_AUI_PANE_BUTTON, self.on_pane_button)
         self.notebook.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CHANGED, self.on_activate_plot_changed)
-        self.notebook.Bind(EVT_PLOT_MOVE, self.on_move)
-        self.notebook.Bind(EVT_PLOT_SCALE, self.on_scale)
         self.menu.Bind(wx.EVT_MENU, self.on_pin_plots, id=ID_PIN_PLOTS)
         self.menu.Bind(wx.EVT_MENU, self.on_open, id=wx.ID_OPEN)
         self.file_toolbar.Bind(wx.EVT_TOOL, self.on_open, id=wx.ID_OPEN)
@@ -122,30 +122,47 @@ class MainWindow(wx.Frame):
         self.mgr.Update()
 
     def on_activate_plot_changed(self, event):
-        selection = event.selection
-        props_pane = self.mgr.GetPane("properties")
-        if selection:
-            self.properties_manager.update_properties(event.plot, selection)
-            props_pane.Caption("Свойства")
+        plot_index = event.GetSelection()
+        if plot_index > -1:
+            plot = self.notebook.notebook.GetPage(plot_index)
+            props_pane = self.mgr.GetPane("properties")
+            if plot.get_selection():
+                self.properties_manager.update(plot)
+                props_pane.Caption("Свойства")
+            else:
+                self.properties_manager.clear()
+                props_pane.Caption("Свойства - объект не выбран")
+            self.objects_manager.update(plot)
         else:
-            self.properties_manager.clear_properties()
+            self.properties_manager.clear()
+            self.objects_manager.clear()
             props_pane.Caption("Свойства - объект не выбран")
-        self.objects_manager.update_objects(event.plot)
+
         self.mgr.Update()
         self.update_controls_state()
         event.Skip()
 
     def update_controls_state(self):
-        can_save = True#self.notebook.can_save()
-        can_undo = True#self.notebook.can_undo()
-        can_redo = True#self.notebook.can_redo()
-
+        can_save = self.notebook.can_save()
+        can_undo = self.notebook.can_undo()
+        can_redo = self.notebook.can_redo()
+        can_copy = self.notebook.can_copy()
+        can_cut = self.notebook.can_cut()
+        can_paste = self.notebook.can_paste()
         self.file_toolbar.EnableTool(wx.ID_SAVE, can_save)
         self.file_toolbar.EnableTool(wx.ID_UNDO, can_undo)
         self.file_toolbar.EnableTool(wx.ID_REDO, can_redo)
+        self.file_toolbar.EnableTool(wx.ID_COPY, can_copy)
+        self.file_toolbar.EnableTool(wx.ID_CUT, can_cut)
+        self.file_toolbar.EnableTool(wx.ID_PASTE, can_paste)
+        self.mgr.GetPane("plot_toolbar").Show(self.notebook.notebook.GetPageCount() > 0)
         self.menu.Enable(wx.ID_SAVEAS, self.notebook.notebook.GetPageCount() > 0)
-
         self.menu.Enable(wx.ID_SAVE, can_save)
+        self.menu.Enable(wx.ID_COPY, can_copy)
+        self.menu.Enable(wx.ID_CUT, can_cut)
+        self.menu.Enable(wx.ID_PASTE, can_paste)
         self.menu.Enable(wx.ID_SAVEAS, self.notebook.notebook.GetPageCount() > 0)
         self.menu.Enable(wx.ID_UNDO, can_undo)
         self.menu.Enable(wx.ID_REDO, can_redo)
+
+        self.mgr.Update()
