@@ -38,7 +38,7 @@ class PlotWidget(wx.Panel):
         return self.name
     
     def is_ready(self):
-        return self.load_task is None or not self.load_task.is_alive()
+        return self.load_task is not None and not self.load_task.is_alive()
     
     def do_load(self, path):
         try:

@@ -43,7 +43,6 @@ class PlotToolbar(wx.aui.AuiToolBar):
         self.parent = parent
         self.SetToolBitmapSize(wx.Size(16, 16))
 
-        self.AddTool(wx.ID_APPLY, "Связать", get_icon("link"), short_help_string="Связать перемещение чертежей")
         self.AddTool(wx.ID_ZOOM_IN, "Приблизить", get_icon("zoom-in"), short_help_string="Приблизить")
         self.AddTool(wx.ID_ZOOM_OUT, "Отдалить", get_icon("zoom-out"), short_help_string="Отдалить")
 

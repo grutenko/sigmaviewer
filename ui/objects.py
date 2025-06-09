@@ -15,10 +15,15 @@ class ObjectsManager(wx.Panel):
         self.tree.DeleteAllItems()
         self.tree.SetItemText(self.tree.RootItem, plot.get_name())
         if not plot.is_ready():
-            self.tree.AppendItem(self.tree.GetRootItem(), "Загрузка...")
+            self.tree.AppendItem(self.tree.RootItem, "Загружается...")
         else:
-            self.tree.AppendItem(self.tree.GetRootItem(), plot.get_name())
+            self.show_items(plot)
         self.Layout()
+
+    def show_items(self, plot):
+        for entity in plot.dxf.modelspace():
+            item = self.tree.AppendItem(self.tree.RootItem, entity.dxftype())
+            self.tree.CheckItem(item)
 
     def clear(self):
         self.tree.DeleteAllItems()
