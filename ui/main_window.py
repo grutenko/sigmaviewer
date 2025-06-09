@@ -81,12 +81,16 @@ class MainWindow(wx.Frame):
         self.menu.Bind(wx.EVT_MENU, self.on_pin_plots, id=ID_PIN_PLOTS)
         self.menu.Bind(wx.EVT_MENU, self.on_open, id=wx.ID_OPEN)
         self.file_toolbar.Bind(wx.EVT_TOOL, self.on_open, id=wx.ID_OPEN)
+        self.notebook.Bind(wx.aui.EVT_AUINOTEBOOK_PAGE_CLOSED, self.on_page_closed)
+        self.notebook.Bind(EVT_PLOT_STATE_CHANGED, self.on_plot_state_changed)
 
-    def on_move(self, event):
-        ...
+    def on_plot_state_changed(self, event):
+        self.update_panels()
+        self.update_controls_state()
 
-    def on_scale(self, event):
-        ...
+    def on_page_closed(self, event):
+        self.update_panels()
+        self.update_controls_state()
 
     def on_open(self, event):
         with wx.FileDialog(self, "Открыть файл", wildcard="*.dxf", style=wx.FD_OPEN | wx.FD_FILE_MUST_EXIST) as file_dialog:
@@ -94,9 +98,6 @@ class MainWindow(wx.Frame):
                 return
             
             path = file_dialog.GetPath()
-            if not path:
-                wx.MessageBox("Не выбран файл для открытия", "Ошибка", wx.OK | wx.ICON_ERROR)
-                return
             self.open(path)
 
     def open(self, path: str):
@@ -122,10 +123,14 @@ class MainWindow(wx.Frame):
         self.mgr.Update()
 
     def on_activate_plot_changed(self, event):
-        plot_index = event.GetSelection()
-        if plot_index > -1:
-            plot = self.notebook.notebook.GetPage(plot_index)
-            props_pane = self.mgr.GetPane("properties")
+        self.update_panels()
+        self.update_controls_state()
+        event.Skip()
+
+    def update_panels(self):
+        props_pane = self.mgr.GetPane("properties")
+        plot = self.notebook.get_current()
+        if plot is not None:
             if plot.get_selection():
                 self.properties_manager.update(plot)
                 props_pane.Caption("Свойства")
@@ -137,10 +142,7 @@ class MainWindow(wx.Frame):
             self.properties_manager.clear()
             self.objects_manager.clear()
             props_pane.Caption("Свойства - объект не выбран")
-
         self.mgr.Update()
-        self.update_controls_state()
-        event.Skip()
 
     def update_controls_state(self):
         can_save = self.notebook.can_save()
@@ -155,14 +157,26 @@ class MainWindow(wx.Frame):
         self.file_toolbar.EnableTool(wx.ID_COPY, can_copy)
         self.file_toolbar.EnableTool(wx.ID_CUT, can_cut)
         self.file_toolbar.EnableTool(wx.ID_PASTE, can_paste)
-        self.mgr.GetPane("plot_toolbar").Show(self.notebook.notebook.GetPageCount() > 0)
-        self.menu.Enable(wx.ID_SAVEAS, self.notebook.notebook.GetPageCount() > 0)
+        self.mgr.GetPane("plot_toolbar").Show(not self.notebook.empty())
+        self.menu.Enable(wx.ID_SAVEAS, not self.notebook.empty())
         self.menu.Enable(wx.ID_SAVE, can_save)
         self.menu.Enable(wx.ID_COPY, can_copy)
         self.menu.Enable(wx.ID_CUT, can_cut)
         self.menu.Enable(wx.ID_PASTE, can_paste)
-        self.menu.Enable(wx.ID_SAVEAS, self.notebook.notebook.GetPageCount() > 0)
+        self.menu.Enable(wx.ID_SAVEAS, not self.notebook.empty())
         self.menu.Enable(wx.ID_UNDO, can_undo)
         self.menu.Enable(wx.ID_REDO, can_redo)
+
+        for i in range(self.notebook.notebook.GetPageCount()):
+            plot = self.notebook.notebook.GetPage(i)
+            self.notebook.set_loading(i, not plot.is_ready())
+
+        label = ""
+        if not self.notebook.empty():
+            if self.notebook.is_ready():
+                label = "Готов"
+            else:
+                label = "Загружается"
+        self.statusbar.SetStatusText(label)
 
         self.mgr.Update()

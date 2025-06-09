@@ -1,14 +1,20 @@
 import wx
 import wx.lib.newevent
-
+import threading
+import util.thread_with_exc
 from ui.ruler import RulerWidget
 
 PlotStateChangedEvent, EVT_PLOT_STATE_CHANGED = wx.lib.newevent.NewEvent()
+
+class PlotLoadCancelException(Exception): ...
 
 
 class PlotWidget(wx.Panel):
     def __init__(self, parent, name=None):
         super().__init__(parent)
+        self.load_task = None
+        self.dxf = None
+        self.selection = None
         self.name = name
         self.init_ui()
 
@@ -20,7 +26,6 @@ class PlotWidget(wx.Panel):
         sz.Add(self.hz_ruler, 1, wx.EXPAND)
         sz.Add(self.vt_ruler, 1, wx.EXPAND)
         self.canvas = wx.Panel(self)
-        self.Layout()
         sz.Add(self.canvas, 1, wx.EXPAND)
         sz.AddGrowableRow(1)
         sz.AddGrowableCol(1)
@@ -34,10 +39,19 @@ class PlotWidget(wx.Panel):
         return self.name
     
     def is_ready(self):
-        return True
+        return self.load_task is None or not self.load_task.is_alive()
+    
+    def do_load(self, path):
+        try:
+            import ezdxf
+            self.dxf = ezdxf.readfile(path)
+            wx.PostEvent(self, PlotStateChangedEvent(plot=self))
+        except PlotLoadCancelException:
+            pass
 
     def load(self, path):
-        pass
+       self.load_task = util.thread_with_exc.ThreadWithExc(target=self.do_load, args=(path, ), daemon=True)
+       self.load_task.start()
 
     def save(self, path):
         pass
@@ -74,3 +88,7 @@ class PlotWidget(wx.Panel):
 
     def paste(self):
         pass
+
+    def on_close(self):
+        if self.load_task is not None and self.load_task.is_alive():
+            self.load_task.raise_exc(PlotLoadCancelException)
