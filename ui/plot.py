@@ -1,6 +1,5 @@
 import wx
 import wx.lib.newevent
-import threading
 import util.thread_with_exc
 from ui.ruler import RulerWidget
 
